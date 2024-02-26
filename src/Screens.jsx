@@ -41,7 +41,7 @@ export function PlayScreen({ end }) {
   const [pairedCount, setPairedCount] = useState(0);
   const [failedCount, setFailedCount] = useState(0);
   const [selectedDifficulty, setSelectedDifficulty] = useState("medium");
-  const [timer, setTimer] = useState(60)
+  const [timer, setTimer] = useState(60);
 
   const getTiles = (tileCount) => {
     // Throw error if count is not even.
@@ -178,23 +178,27 @@ export function PlayScreen({ end }) {
 
   useEffect(() => {
     handleDifficultyLevel(selectedDifficulty);
-    setTimer(60)
+    setTimer(60);
   }, [selectedDifficulty]);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTimer((prevTimer) => prevTimer -1)
-    }, 1000)
+    if (timer > 0) {
+      const interval = setInterval(() => {
+        setTimer((prevTimer) => prevTimer - 1);
+        if (prevTimer === 0) return;
+      }, 1000);
 
-    return () => clearInterval(interval)
-  }, [])
-
-  useEffect(() => {
-    if (timer === 0) {
-      setTimeout(end, 0);
-      return
+      return () => clearInterval(interval);
+    } else {
     }
-  })
+  }, [timer]);
+
+  // useEffect(() => {
+  //   if (timer === 0) {
+  //     setTimeout(end, 0);
+  //     return
+  //   }
+  // })
 
   return (
     <>
@@ -234,8 +238,13 @@ export function PlayScreen({ end }) {
           </div>
           <div>
             <p className="py-2 px-3 bg-red-600 text-white rounded-lg">
-              {Math.floor(timer / 60).toString().padStart(2, '0')}:
-              {Math.floor(timer % 60).toString().padStart(2, "0")}
+              {Math.floor(timer / 60)
+                .toString()
+                .padStart(2, "0")}
+              :
+              {Math.floor(timer % 60)
+                .toString()
+                .padStart(2, "0")}
             </p>
           </div>
         </div>
@@ -267,6 +276,23 @@ export function PlayScreen({ end }) {
           </p>
         </div>
       </div>
+      {timer === 0 && (
+        <div className="absolute top-0 left-0 bg-black bg-opacity-50 w-full h-screen">
+          <div className="flex items-center justify-center h-screen">
+            <div className="w-[80%] lg:w-[50%] bg-white rounded-lg flex flex-col items-center justify-center gap-5 h-[30%] lg:h-[40%]">
+              <h1 className="text-2xl lg:text-3xl text-red-600 font-bold">
+                Time out!
+              </h1>
+              <p
+                className="py-1 px-3 bg-red-600 text-white rounded-full cursor-pointer"
+                onClick={end}
+              >
+                Restart
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
