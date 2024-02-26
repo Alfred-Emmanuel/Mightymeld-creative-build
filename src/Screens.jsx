@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import confetti from "canvas-confetti";
 import * as icons from "react-icons/gi";
 import { Tile } from "./Tile";
+import successSound from "./multimedia_files/correct-match.mp3";
+import failSound from "./multimedia_files/incorrect-match.mp3";
 
 export const possibleTileContents = [
   icons.GiHearts,
@@ -18,10 +20,17 @@ export const possibleTileContents = [
 
 export function StartScreen({ start }) {
   return (
-    <div>
-      <button onClick={start} className="bg-gray-400 text-white p-3">
-        Play
-      </button>
+    <div className="flex justify-center items-center w-full h-screen">
+      <div className="flex flex-col gap-8 justify-center items-center bg-pink-100 w-[80%] h-[55%] lg:w-[40%] rounded-lg">
+        <h1 className="text-pink-600 text-2xl font-bold">Memory</h1>
+        <p className="text-pink-600">Flip over tiles looking for pairs</p>
+        <button
+          onClick={start}
+          className="bg-gradient-to-t from-pink-600 to-pink-500 text-white w-20 h-10 rounded-full"
+        >
+          Play
+        </button>
+      </div>
     </div>
   );
 }
@@ -29,6 +38,10 @@ export function StartScreen({ start }) {
 export function PlayScreen({ end }) {
   const [tiles, setTiles] = useState(null);
   const [tryCount, setTryCount] = useState(0);
+  const [pairedCount, setPairedCount] = useState(0);
+  const [failedCount, setFailedCount] = useState(0);
+  const [selectedDifficulty, setSelectedDifficulty] = useState("medium");
+  const [timer, setTimer] = useState(60)
 
   const getTiles = (tileCount) => {
     // Throw error if count is not even.
@@ -37,7 +50,7 @@ export function PlayScreen({ end }) {
     }
 
     // Use the existing list if it exists.
-    if (tiles) return tiles;
+    // if (tiles) return tiles;
 
     const pairCount = tileCount / 2;
 
@@ -52,6 +65,22 @@ export function PlayScreen({ end }) {
 
     setTiles(shuffledContents);
     return shuffledContents;
+  };
+
+  const playSuccessSound = () => {
+    const sound = new Audio(successSound);
+    sound.play();
+  };
+
+  const playFailSound = () => {
+    const sound = new Audio(failSound);
+    sound.play();
+  };
+
+  const toggleMute = () => {
+    const sound = document.querySelector("audio");
+    sound.muted = !sound.muted;
+    // sound.muted = true
   };
 
   const flip = (i) => {
@@ -76,9 +105,14 @@ export function PlayScreen({ end }) {
 
       if (alreadyFlippedTile.content === justFlippedTile.content) {
         confetti({
-          ticks: 100,
+          ticks: 200,
         });
         newState = "matched";
+        playSuccessSound();
+        setPairedCount((c) => c + 1);
+      } else {
+        playFailSound();
+        setFailedCount((c) => c + 1);
       }
 
       // After a delay, either flip the tiles back or mark them as matched.
@@ -107,14 +141,132 @@ export function PlayScreen({ end }) {
     });
   };
 
+  const handleDifficultyLevel = (difficulty) => {
+    setSelectedDifficulty(difficulty);
+
+    let tileCount;
+    // switch(difficulty) {
+    //   case 'easy':
+    //     tileCount = 8;
+    //     break;
+    //   case 'medium':
+    //     tileCount = 12;
+    //     break;
+    //   case 'hard':
+    //     tileCount = 20;
+    //     break;
+    // }
+
+    if (difficulty === "easy") {
+      tileCount = 8;
+      console.log(difficulty);
+      console.log(tileCount);
+      // return
+    } else if (difficulty === "medium") {
+      tileCount = 12;
+      console.log(difficulty);
+      console.log(tileCount);
+    } else {
+      tileCount = 20;
+      console.log(difficulty);
+      console.log(tileCount);
+    }
+
+    const newTiles = getTiles(tileCount);
+    setTiles(newTiles);
+  };
+
+  useEffect(() => {
+    handleDifficultyLevel(selectedDifficulty);
+    setTimer(60)
+  }, [selectedDifficulty]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimer((prevTimer) => prevTimer -1)
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    if (timer === 0) {
+      setTimeout(end, 0);
+      return
+    }
+  })
+
   return (
     <>
-      <div>
-        {getTiles(6).map((tile, i) => (
-          <Tile key={i} flip={() => flip(i)} {...tile} />
-        ))}
+      <div className="flex flex-col gap-10 justify-center items-center h-screen w-full">
+        <div className="w-[80%] lg:w-[60%] flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <p
+              className={`text-lg font-medium ${
+                selectedDifficulty === "easy"
+                  ? "selected-difficulty"
+                  : "unselected-difficulty"
+              }`}
+              onClick={() => handleDifficultyLevel("easy")}
+            >
+              Easy
+            </p>
+            <p
+              className={`text-lg font-medium ${
+                selectedDifficulty === "medium"
+                  ? "selected-difficulty"
+                  : "unselected-difficulty"
+              }`}
+              onClick={() => handleDifficultyLevel("medium")}
+            >
+              Medium
+            </p>
+            <p
+              className={`text-lg font-medium ${
+                selectedDifficulty === "hard"
+                  ? "selected-difficulty"
+                  : "unselected-difficulty"
+              }`}
+              onClick={() => handleDifficultyLevel("hard")}
+            >
+              Hard
+            </p>
+          </div>
+          <div>
+            <p className="py-2 px-3 bg-red-600 text-white rounded-lg">
+              {Math.floor(timer / 60).toString().padStart(2, '0')}:
+              {Math.floor(timer % 60).toString().padStart(2, "0")}
+            </p>
+          </div>
+        </div>
+        <div className="w-[80%] lg:w-[60%] bg-indigo-50 flex justify-center items-center p-4 rounded-lg">
+          <div className="grid grid-cols-4 gap-4 justify-center items-center w-full">
+            {}
+            {tiles &&
+              tiles.map((tile, i) => (
+                <Tile key={i} flip={() => flip(i)} {...tile} />
+              ))}
+          </div>
+        </div>
+        <div className="flex item-center justify-between w-[80%] lg:w-[60%] transition duration-3000 transform rotate-y-180">
+          <p className="text-blue-600 font-semibold lg:text-xl">
+            Tries:{" "}
+            <span className="bg-blue-200 py-1 px-2 rounded-lg">{tryCount}</span>
+          </p>
+          <p className="text-green-600 font-semibold lg:text-xl">
+            Matched:{" "}
+            <span className="bg-green-200 py-1 px-2 rounded-lg">
+              {pairedCount}
+            </span>
+          </p>
+          <p className="text-red-600 font-semibold lg:text-xl">
+            Mismatched:{" "}
+            <span className="bg-red-200 py-1 px-2 rounded-lg">
+              {failedCount}
+            </span>
+          </p>
+        </div>
       </div>
-      {tryCount}
     </>
   );
 }
